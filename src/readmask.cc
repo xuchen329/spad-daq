@@ -119,10 +119,12 @@ int rawdata_daq(const string daqconfigfile){
     
     MODE          = config.read<int>("daq_mode");
     ROWCALSEL_ACT = 0;
-    PREAMP        = 2;
+    PREAMP        = config.read<int>("preamp");
     TDCIN         = 0;
     ENETH         = config.read<int>("ene_thr");
     ENETEST       = config.read<int>("ene_test");
+    //mode 1 force enetest=0
+    if(MODE==1) ENETEST=0;
 
     SREN          = config.read<int>("smart_reset");
     TDCTH         = config.read<int>("tdc_thr");
