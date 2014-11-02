@@ -11,6 +11,7 @@
 #include <TH1I.h>
 #include <TCanvas.h>
 #include <TH2I.h>
+#include <TStyle.h>
 
 using namespace std;
 
@@ -25,6 +26,14 @@ int main(int argc, char** argv){
     TString infilename = argv[1];
     TFile* fin = new TFile(infilename,"read");
     TTree* tree = (TTree*)fin->Get("data");
+
+    bool map_mode =0;
+    Int_t CLUSTER_ID = 10;
+    if(argc>2){
+      CLUSTER_ID = atoi(argv[2]);
+    }
+    else map_mode=1;
+
 
     TRint *theApp = new TRint("app",&argc,argv);
 
@@ -42,20 +51,16 @@ int main(int argc, char** argv){
     vector<int> activated_cluster;
     activated_cluster.clear();
 
-    bool map_mode =0;
-    Int_t CLUSTER_ID = 10;
-    if(argc>2){
-      CLUSTER_ID = atoi(argv[2]);
-    }
-    else map_mode=1;
     Int_t COL=CLUSTER_ID/18;
     TH1I *histene = new TH1I("energy",Form("Energy_Cluster %d;Pixel;Counts",CLUSTER_ID),416,1,416);
     TH1I *histtdc = new TH1I("tdc",Form("TDC_Group %d;Code;Counts",COL),20000,1,20000);
+    TH1I *histntdc = new TH1I("ntdc",Form("nTDC_fired_Group %d;nTDC;Counts",COL),48,1,48);
     TH2I *histmap = new TH2I("map","Pixel firing map;Cluster_ID;Pixel_fired",72,0,71,416,1,416);
 
     if(!map_mode){
       for(int ientry=0;ientry<nentry;ientry++){
 	tree->GetEntry(ientry);
+	Int_t nTDC=0;
 	for(int idx=0;idx<9*18;idx++){
 	  if(CLUSTER_ID!=idx) continue;
 	  int npixelfired = 0;
@@ -74,6 +79,7 @@ int main(int argc, char** argv){
 	  if(tdc[tidx]!=0){
 	    //cout<<"TDC:"<<tidx<<" value: "<<tdc[tidx]<<endl;
 	    histtdc->Fill(-1*(tdc[0]-tdc[tidx]));
+	    nTDC++;
 	  }
 	}
 	/*	cout<<"Activated clusters: ";
@@ -85,6 +91,7 @@ int main(int argc, char** argv){
 //	if(ientry==1) break;
 	//cout<<"Dummy TDC: "<<tdc[0]<<endl;
 	//cout<<sizeof(conf)<<endl;
+	histntdc->Fill(nTDC);
       }
     }
     else{
@@ -103,18 +110,25 @@ int main(int argc, char** argv){
 	}
       }
     }
-	
+
+    gStyle->SetOptFit(1111);
     if(!map_mode){
       TCanvas* can_tdc = new TCanvas("TDC","TDC");
       histtdc->Draw();
       TCanvas* can_ene = new TCanvas("Energy","Energy");
       histene->Draw();
+      histene->Fit("gaus");
+      can_ene->UseCurrentStyle();
+      TCanvas* can_ntdc = new TCanvas("nTDC","nTDC");
+      histntdc->Draw();
+      histntdc->Fit("gaus");
+      can_ntdc->UseCurrentStyle();
     }
     else{
       TCanvas* can_ene = new TCanvas("Energy","Energy");
       histmap->Draw();
     }
-      
+
     theApp->Run();
     fin->Close();
     return 0;
